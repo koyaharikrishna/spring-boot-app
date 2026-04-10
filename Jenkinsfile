@@ -1,34 +1,39 @@
 pipeline {
     agent any
-    
+
     tools {
-        maven 'maven-3.9' 
+        // Ensure this matches the name in Manage Jenkins -> Tools
+        maven 'maven-3.9'
     }
 
     environment {
-        DOCKER_USER = 'your-dockerhub-username'
+        DOCKER_USER = 'your-dockerhub-username' // Replace with your username
         APP_NAME = 'spring-boot-app'
     }
 
     stages {
-        stage('Build JAR') {
+        stage('Checkout') {
             steps {
-                // Use 'bat' for Windows instead of 'sh'
-                bat 'mvn clean package -DskipTests -e
+                git branch: 'main', url: 'https://github.com/koyaharikrishna/spring-boot-app.git'
             }
         }
-        
+
+        stage('Build JAR') {
+            steps {
+                bat 'mvn clean package -DskipTests -e'
+            }
+        }
+
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // Use 'bat' for docker commands too
-                    bat "docker build -t %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER% ."
-                    bat "docker tag %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER% %DOCKER_USER%/%APP_NAME%:latest"
+                    // Building the image
+                    bat "docker build -t %DOCKER_USER%/%APP_NAME%:latest ."
                     
-                    // For Docker login on Windows, it's safer to use standard bat commands
+                    // Logging in and pushing
+                    // Note: Create a 'dockerhub-auth' credential in Jenkins (Username/Password)
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-auth', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
                         bat "docker login -u %USER% -p %PASS%"
-                        bat "docker push %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER%"
                         bat "docker push %DOCKER_USER%/%APP_NAME%:latest"
                     }
                 }
@@ -37,9 +42,8 @@ pipeline {
 
         stage('Deploy to K8s') {
             steps {
-                // Change 'sh' to 'bat' for kubectl
+                // This assumes kubectl is configured on the Jenkins Windows server
                 bat "kubectl apply -f k8s/deployment.yaml"
-                bat "kubectl rollout restart deployment/%APP_NAME%"
             }
         }
     }

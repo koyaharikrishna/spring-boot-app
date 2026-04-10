@@ -3,17 +3,30 @@ kind: Deployment
 metadata:
   name: spring-boot-app
 spec:
-  replicas: 2  # Run two instances for high availability
+  replicas: 1
   selector:
     matchLabels:
-      app: spring-boot
+      app: spring-boot-app
   template:
     metadata:
       labels:
-        app: spring-boot
+        app: spring-boot-app # This MUST match the selector below
     spec:
       containers:
-      - name: spring-boot
-        image: your-dockerhub-username/spring-boot-app:latest # Jenkins will update this
+      - name: spring-boot-app
+        image: koyaharikrishna/spring-boot-app:latest
         ports:
-        - containerPort: 8080
+        - containerPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-service
+spec:
+  type: NodePort
+  selector:
+    app: spring-boot-app # This is the "glue" that finds your Pod
+  ports:
+    - port: 80
+      targetPort: 8081
+      nodePort: 30001

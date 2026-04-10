@@ -40,11 +40,10 @@ pipeline {
             }
         }
 
-        stage('Deploy to K8s') {
-            steps {
-                // This assumes kubectl is configured on the Jenkins Windows server
-                bat "kubectl apply -f k8s/deployment.yaml"
-            }
-        }
+stage('Deploy to K8s') {
+    steps {
+        bat "kubectl --kubeconfig=C:\\ProgramData\\Jenkins\\.jenkins\\.kube\\config apply -f k8s/deployment.yaml"
+    }
+}
     }
 }

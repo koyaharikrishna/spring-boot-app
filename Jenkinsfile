@@ -1,43 +1,35 @@
 pipeline {
     agent any
     
-    // This matches the names you gave in "Manage Jenkins > Tools"
     tools {
         maven 'maven-3.9' 
-        dockerTool 'docker-latest'
     }
 
     environment {
-        DOCKER_USER = 'koyaharikrishna'
+        DOCKER_USER = 'your-dockerhub-username'
         APP_NAME = 'spring-boot-app'
-        IMAGE_NAME = "${DOCKER_USER}/${APP_NAME}"
-        IMAGE_TAG = "${env.BUILD_NUMBER}" // Use Jenkins build number as version
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/koyaharikrishna/spring-boot-app'
-            }
-        }
-
         stage('Build JAR') {
             steps {
-                // Clean and package the Spring Boot app
-                sh 'mvn clean package -DskipTests'
+                // Use 'bat' for Windows instead of 'sh'
+                bat 'mvn clean package -DskipTests'
             }
         }
-
+        
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // Build the image
-                    dockerImage = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                    // Use 'bat' for docker commands too
+                    bat "docker build -t %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER% ."
+                    bat "docker tag %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER% %DOCKER_USER%/%APP_NAME%:latest"
                     
-                    // Login and Push to Docker Hub
-                    docker.withRegistry('', 'dockerhub-auth') {
-                        dockerImage.push()
-                        dockerImage.push('latest')
+                    // For Docker login on Windows, it's safer to use standard bat commands
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-auth', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                        bat "docker login -u %USER% -p %PASS%"
+                        bat "docker push %DOCKER_USER%/%APP_NAME%:%BUILD_NUMBER%"
+                        bat "docker push %DOCKER_USER%/%APP_NAME%:latest"
                     }
                 }
             }
@@ -45,13 +37,9 @@ pipeline {
 
         stage('Deploy to K8s') {
             steps {
-                // Use the Kubeconfig stored in Jenkins to update the cluster
-                withKubeConfig([credentialsId: 'k8s-config']) {
-                    sh "kubectl apply -f k8s/deployment.yaml"
-                    sh "kubectl apply -f k8s/service.yaml"
-                    // Force K8s to pull the new 'latest' image
-                    sh "kubectl rollout restart deployment/${APP_NAME}"
-                }
+                // Change 'sh' to 'bat' for kubectl
+                bat "kubectl apply -f k8s/deployment.yaml"
+                bat "kubectl rollout restart deployment/%APP_NAME%"
             }
         }
     }

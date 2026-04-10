@@ -14,7 +14,7 @@ pipeline {
         stage('Build JAR') {
             steps {
                 // Use 'bat' for Windows instead of 'sh'
-                bat 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests -e
             }
         }
         

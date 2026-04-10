@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_USER = 'your-dockerhub-username' // Replace with your username
+        DOCKER_USER = 'koyaharikrishna' // Replace with your username
         APP_NAME = 'spring-boot-app'
     }
 
